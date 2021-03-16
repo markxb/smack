@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: install dependencies
+      - name: install build dependencies
         run: |
           brew install ninja
           brew install boost
@@ -67,6 +67,19 @@ jobs:
         run: |
           wget https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-apple-darwin.tar.xz
           tar -xf clang+llvm-10.0.0-x86_64-apple-darwin.tar.xz
+
+      - name: install backends
+        run: |
+          brew install z3
+          export BOOGIE_DIR="$PWD"/../smack-deps/boogie
+          export CORRAL_DIR="$PWD"/../smack-deps/corral
+          export BOOGIE_VERSION="2.8.26"
+          export CORRAL_VERSION="1.0.17"
+          export SMACKENV="$PWD"/../smack.environment
+          dotnet tool install Boogie --tool-path ${BOOGIE_DIR} --version ${BOOGIE_VERSION}
+          dotnet tool install Corral --tool-path ${CORRAL_DIR} --version ${CORRAL_VERSION}
+          echo export PATH=\"${BOOGIE_DIR}:\$PATH\" >> ${SMACKENV}
+          echo export PATH=\"${CORRAL_DIR}:\$PATH\" >> ${SMACKENV}
 
       - name: build
         run: |
@@ -79,3 +92,10 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Debug .. -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
           ninja
           sudo ninja install
+
+      - name: test
+        run: |
+          export SMACKENV="$PWD"/../smack.environment
+          source $SMACKENV
+          cd test
+          ./regtest.py
