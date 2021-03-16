@@ -63,7 +63,6 @@ jobs:
           export TMP_VERSION_FILE="$TMPDIR"/versions
           cp bin/versions "$TMP_VERSION_FILE"
           sed -i"" -e "s/\"//g" "$TMP_VERSION_FILE"
-          cat "$TMP_VERSION_FILE"
           cat "$TMP_VERSION_FILE" >> $GITHUB_ENV
           export ROOT_DIR="$PWD"/../
           export DEPS_DIR="$ROOT_DIR"/smack-deps
@@ -75,7 +74,10 @@ jobs:
         run: |
           brew install ninja
           brew install boost
-          sudo pip3 install PyYAML toml
+          brew install rustup
+          rustup toolchain install ${{ env.RUST_VERSION }}
+          cargo install rustfilt
+          sudo pip3 install PyYAML toml psutil
 
       - name: install llvm
         run: |
