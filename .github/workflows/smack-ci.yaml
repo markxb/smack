@@ -72,7 +72,7 @@ jobs:
 
       - name: install build/test dependencies
         run: |
-          ls /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
+          ls /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
           exit 1
           brew install ninja
           brew install boost
