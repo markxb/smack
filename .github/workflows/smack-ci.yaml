@@ -58,9 +58,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: let's see what you got
+      - name: install dependencies
         run: |
-          dotnet tool -h
+          brew update
+          brew install ninja
+          brew install boost
 
       - name: install llvm
         run: |
@@ -75,6 +77,6 @@ jobs:
           git submodule update
           mkdir -p "$PWD"/build
           cd "$PWD"/build
-          cmake -DCMAKE_BUILD_TYPE=Debug .. -G Ninja
+          cmake -DCMAKE_BUILD_TYPE=Debug .. -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
           ninja
           sudo ninja install
