@@ -58,10 +58,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: install build dependencies
+      - name: install build/test dependencies
         run: |
           brew install ninja
           brew install boost
+          sudo pip3 install yaml toml
 
       - name: install llvm
         run: |
