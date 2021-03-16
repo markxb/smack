@@ -110,6 +110,7 @@ jobs:
 
       - name: test
         run: |
+          sudo xcode-select --install
           source ${{ env.SMACKENV }}
           export PATH="$PWD"/clang+llvm-10.0.0-x86_64-apple-darwin/bin:$PATH
           clang-10 --version
