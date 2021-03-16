@@ -108,8 +108,8 @@ jobs:
         run: |
           source ${{ env.SMACKENV }}
           cat ${{ env.SMACKENV }}
-          boogie --version
-          corral --version
+          boogie /help
+          corral /help
           smack test/./c/basic/ase_example_fail.c -v
           cd test
           ./regtest.py
