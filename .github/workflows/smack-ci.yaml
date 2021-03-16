@@ -72,6 +72,8 @@ jobs:
 
       - name: install build/test dependencies
         run: |
+          ls /Applications/Xcode_12.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include
+          exit 1
           brew install ninja
           brew install boost
           brew install rustup
@@ -112,7 +114,6 @@ jobs:
         run: |
           source ${{ env.SMACKENV }}
           export PATH="$PWD"/clang+llvm-10.0.0-x86_64-apple-darwin/bin:$PATH
-          export CPATH=/Applications/Xcode_12.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include:$CPATH
           clang-10 --version
           smack -h
           smack test/./c/basic/ase_example.c -v
