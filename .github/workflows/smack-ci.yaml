@@ -110,6 +110,6 @@ jobs:
           cat ${{ env.SMACKENV }}
           boogie --version
           corral --version
-          smack test/./c/basic/ase_example_fail.c
+          smack test/./c/basic/ase_example_fail.c -v
           cd test
           ./regtest.py
