@@ -60,7 +60,7 @@ jobs:
 
       - name: import/setup environment variables
         run: |
-          export TMP_VERSION_FILE= "$TMPDIR"/versions
+          export TMP_VERSION_FILE="$TMPDIR"/versions
           cp bin/versions "$TMP_VERSION_FILE"
           sed -i"" -e "s/\"//g" "$TMP_VERSION_FILE"
           cat "$TMP_VERSION_FILE"
