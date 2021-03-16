@@ -107,9 +107,6 @@ jobs:
       - name: test
         run: |
           source ${{ env.SMACKENV }}
-          cat ${{ env.SMACKENV }}
-          boogie /help
-          corral /help
-          smack test/./c/basic/ase_example_fail.c -v
+          export PATH="$PWD"/clang+llvm-10.0.0-x86_64-apple-darwin/bin:$PATH
           cd test
           ./regtest.py
