@@ -71,5 +71,10 @@ jobs:
         run: |
           export PATH="$PWD"/clang+llvm-10.0.0-x86_64-apple-darwin/bin:$PATH
           clang --version
-          sed -i'' -e 's/INSTALL_DEPENDENCIES=1/INSTALL_DEPENDENCIES=0/g' bin/build.sh
-          bin/build.sh
+          git submodule init
+          git submodule update
+          mkdir -p "$PWD"/build
+          cd "$PWD"/build
+          cmake -DCMAKE_BUILD_TYPE=Debug .. -G Ninja
+          ninja
+          sudo ninja install
