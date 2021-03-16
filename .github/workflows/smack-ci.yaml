@@ -55,6 +55,37 @@ jobs:
   #      run: ./bin/build.sh
   check-regressions-mac:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        travis_env:
+          [
+            "--exhaustive --folder=c/basic",
+            "--exhaustive --folder=c/data",
+            "--exhaustive --folder=c/ntdrivers-simplified",
+            "--exhaustive --folder=c/ntdrivers",
+            "--exhaustive --folder=c/bits",
+            "--exhaustive --folder=c/float",
+            "--exhaustive --folder=c/locks",
+            "--exhaustive --folder=c/contracts",
+            "--exhaustive --folder=c/simd",
+            "--exhaustive --folder=c/memory-safety",
+            "--exhaustive --folder=c/pthread",
+            "--exhaustive --folder=c/pthread_extras",
+            "--exhaustive --folder=c/strings",
+            "--exhaustive --folder=c/special",
+            "--exhaustive --folder=rust/array --languages=rust",
+            "--exhaustive --folder=rust/basic --languages=rust",
+            "--exhaustive --folder=rust/box --languages=rust",
+            "--exhaustive --folder=rust/functions --languages=rust",
+            "--exhaustive --folder=rust/generics --languages=rust",
+            "--exhaustive --folder=rust/loops --languages=rust",
+            "--exhaustive --folder=rust/panic --languages=rust",
+            "--exhaustive --folder=rust/recursion --languages=rust",
+            "--exhaustive --folder=rust/structures --languages=rust",
+            "--exhaustive --folder=rust/vector --languages=rust",
+            "--exhaustive --folder=rust/cargo/** --languages=cargo --threads=1",
+            "--exhaustive --folder=llvm --languages=llvm-ir"
+          ]
     steps:
       - uses: actions/checkout@v2
 
@@ -117,8 +148,5 @@ jobs:
           ln -s $LLVM_BIN_DIR/llvm-as $LLVM_BIN_DIR/llvm-as-10
           export PATH="$PWD"/clang+llvm-10.0.0-x86_64-apple-darwin/bin:$PATH
           export CPATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include:$CPATH
-          clang-10 --version
-          smack -h
-          smack test/./c/basic/ase_example.c -d
           cd test
-          ./regtest.py
+          ./regtest.py ${{ matrix.travis_env }}
