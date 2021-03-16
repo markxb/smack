@@ -111,6 +111,10 @@ jobs:
       - name: test
         run: |
           source ${{ env.SMACKENV }}
+          export LLVM_BIN_DIR="$PWD"/clang+llvm-10.0.0-x86_64-apple-darwin/bin
+          ln -s $LLVM_BIN_DIR/llvm-link $LLVM_BIN_DIR/llvm-link-10
+          ln -s $LLVM_BIN_DIR/llvm-dis $LLVM_BIN_DIR/llvm-dis-10
+          ln -s $LLVM_BIN_DIR/llvm-as $LLVM_BIN_DIR/llvm-as-10
           export PATH="$PWD"/clang+llvm-10.0.0-x86_64-apple-darwin/bin:$PATH
           export CPATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include:$CPATH
           clang-10 --version
