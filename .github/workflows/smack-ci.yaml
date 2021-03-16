@@ -73,6 +73,7 @@ jobs:
       - name: install build/test dependencies
         run: |
           clang --version
+          ls /Applications/Xcode_12.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr
           exit 1
           brew install ninja
           brew install boost
