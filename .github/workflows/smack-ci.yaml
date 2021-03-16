@@ -115,6 +115,6 @@ jobs:
           export CPATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include:$CPATH
           clang-10 --version
           smack -h
-          smack test/./c/basic/ase_example.c -v
+          smack test/./c/basic/ase_example.c -d
           cd test
           ./regtest.py
