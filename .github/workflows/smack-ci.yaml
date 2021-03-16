@@ -72,9 +72,7 @@ jobs:
 
       - name: install build/test dependencies
         run: |
-          sudo rm -rf /Library/Developer/CommandLineTools
-          sudo xcode-select --install
-          ls /Library/Developer/CommandLineTools/Packages/
+          clang --version
           exit 1
           brew install ninja
           brew install boost
