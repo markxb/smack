@@ -87,11 +87,6 @@ jobs:
       - name: install backends
         run: |
           brew install z3
-          export BOOGIE_DIR="$PWD"/../smack-deps/boogie
-          export CORRAL_DIR="$PWD"/../smack-deps/corral
-          export BOOGIE_VERSION="2.8.26"
-          export CORRAL_VERSION="1.0.17"
-          export SMACKENV="$PWD"/../smack.environment
           dotnet tool install Boogie --tool-path ${{ env.BOOGIE_DIR }} --version ${{ env.BOOGIE_VERSION }}
           dotnet tool install Corral --tool-path ${{ env.CORRAL_DIR }} --version ${{ env.CORRAL_VERSION }}
           echo export PATH=\"${{ env.BOOGIE_DIR }}:\$PATH\" >> ${{ env.SMACKENV }}
@@ -112,5 +107,9 @@ jobs:
       - name: test
         run: |
           source ${{ env.SMACKENV }}
+          cat ${{ env.SMACKENV }}
+          boogie --version
+          corral --version
+          smack test/./c/basic/ase_example_fail.c
           cd test
           ./regtest.py
