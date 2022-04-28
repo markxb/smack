@@ -1645,7 +1645,7 @@ void __SMACK_decls(void) {
 #endif
     "}\n");
 
-  D("function $base(ref) returns (ref);");
+  D("function $base($ref) returns ($ref);");
   D("var $allocatedCounter: int;\n");
 
   D("procedure $malloc(n: $ref) returns (p: $ref)\n"
@@ -1661,7 +1661,7 @@ void __SMACK_decls(void) {
 
 #if MEMORY_MODEL_NO_REUSE_IMPLS
   D("var $Alloc: [$ref] bool;");
-  D("function $Size(ref) returns (ref);");
+  D("function $Size($ref) returns ($ref);");
   D("var $CurrAddr:$ref;\n");
 
   // LLVM does not allocated globals explicitly. Hence, we do it in our prelude
