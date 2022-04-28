@@ -19,7 +19,7 @@ __SMACK_INIT(defineProcessStates) {
   __SMACK_top_decl("const unique $process_running: int;");
   __SMACK_top_decl("const unique $process_waiting: int;");
   __SMACK_top_decl("const unique $process_stopped: int;");
-  __SMACK_top_decl("var $processStatus: [ref]int;");
+  __SMACK_top_decl("var $processStatus: [$ref]int;");
 }
 
 // This is the one that would need to be in a __SMACK_INIT call,
@@ -27,7 +27,7 @@ __SMACK_INIT(defineProcessStates) {
 // This definition would also be listed in the model's header file.
 __SMACK_INIT(initializeProcessStates) {
   __SMACK_code(
-      "assume (forall x:ref :: $processStatus[x] == $process_uninitialized);");
+      "assume (forall x:$ref :: $processStatus[x] == $process_uninitialized);");
 }
 
 int main(void) {
