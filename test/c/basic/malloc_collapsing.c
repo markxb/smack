@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 // @expect verified
-// @checkbpl grep "var \$M.0: \[ref\] i32;"
+// @checkbpl grep "var \$M.0: \[$ref\] i32;"
 
 int main(void) {
   int *p = (int *)malloc(sizeof(int));
