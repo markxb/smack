@@ -40,8 +40,8 @@ std::string getFpTypeName(unsigned bitWidth) {
     llvm_unreachable("invalid floating-point bit width");
 }
 
-// make type names such as [ref] i32
-std::string getMapTypeName(std::string elemType) { return "[ref] " + elemType; }
+// make type names such as [$ref] i32
+std::string getMapTypeName(std::string elemType) { return "[$ref] " + elemType; }
 
 // make generic type names
 // when the `i` is 0, it returns the prefix
@@ -106,7 +106,7 @@ std::list<Binding> makeFpVars(unsigned numVars, unsigned bitWidth) {
   });
 }
 
-// make bindings such as [(M,[ref]T)], [(p1,[ref]T),(p2,[ref]T)]
+// make bindings such as [(M,[$ref]T)], [(p1,[$ref]T),(p2,[$ref]T)]
 std::list<Binding> makeMapVars(unsigned numVars, std::string elemType) {
   return makeListOfElems<Binding>(numVars, [&](unsigned i) -> Binding {
     return {makeMapVarName(i), getMapTypeName(elemType)};
@@ -183,7 +183,7 @@ const std::map<unsigned, std::pair<unsigned, unsigned>> FpOpGen::FP_LAYOUT{
 const std::vector<unsigned> FpOpGen::FP_BIT_WIDTHS{16, 32, 64, 80};
 
 // make Boogie map selection expression such as
-// M[p], M[$add.ref(p, 1)]
+// M[p], M[$add.$ref(p, 1)]
 const Expr *Prelude::mapSelExpr(unsigned idx) {
   auto ptrVar = makePtrVarExpr(0);
   auto idxExpr = idx ? Expr::fn(indexedName("$add", {Naming::PTR_TYPE}), ptrVar,
@@ -193,7 +193,7 @@ const Expr *Prelude::mapSelExpr(unsigned idx) {
 }
 
 // make Boogie map update expression such as
-// M[p:=v], M[$add.ref(p,1):=v]
+// M[p:=v], M[$add.$ref(p,1):=v]
 const Expr *Prelude::mapUpdExpr(unsigned idx, const Expr *val,
                                 const Expr *map) {
   auto ptrVar = makePtrVarExpr(0);
@@ -247,7 +247,7 @@ FuncDecl *Prelude::unsafeStore(Binding elemBinding, const Expr *body,
 }
 
 // declare extractvalue functions
-// e.g., function $extractvalue.float(p: ref, i: int) returns (float);
+// e.g., function $extractvalue.float(p: $ref, i: int) returns (float);
 FuncDecl *extractValue(std::string resType) {
   std::list<Binding> args = makePtrVars(1);
   args.emplace_back(Binding{"i", "int"});
@@ -255,7 +255,7 @@ FuncDecl *extractValue(std::string resType) {
 }
 
 // declare extractvalue functions for integers
-// e.g., function $extractvalue.bv256(p: ref, i: int) returns (bv256);
+// e.g., function $extractvalue.bv256(p: $ref, i: int) returns (bv256);
 FuncDecl *extractValue(unsigned width) {
   std::string resType =
       SmackOptions::BitPrecise ? getBvTypeName(width) : getIntTypeName(width);
@@ -934,35 +934,35 @@ void IntOpGen::generateMemOps(std::stringstream &s) const {
     if (!SmackOptions::BitPrecise) {
       std::string type = getIntTypeName(size);
       auto binding = makeIntVars(1, type).front();
-      // e.g.: function {:inline} $load.i1(M: [ref] i1, p: ref) returns (i1) {
+      // e.g.: function {:inline} $load.i1(M: [$ref] i1, p: $ref) returns (i1) {
       // M[p] }
       s << prelude.safeLoad(type) << "\n";
-      // e.g.: function {:inline} $store.i1(M: [ref] i1, p: ref, i: i1)
-      //        returns ([ref] i1) { M[p := i] }
+      // e.g.: function {:inline} $store.i1(M: [$ref] i1, p: $ref, i: i1)
+      //        returns ([$ref] i1) { M[p := i] }
       s << prelude.safeStore(binding) << "\n";
     } else {
-      // e.g.: function {:inline} $load.bv1(M: [ref] bv1, p: ref) returns (bv1)
+      // e.g.: function {:inline} $load.bv1(M: [$ref] bv1, p: $ref) returns (bv1)
       // { M[p] }
       std::string type = getBvTypeName(size);
       auto binding = makeIntVars(1, type).front();
       s << prelude.safeLoad(type) << "\n";
-      // e.g.: function {:inline} $store.bv1(M: [ref] bv1, p: ref, v: bv1)
-      //        returns ([ref] bv1) { M[p := i] }
+      // e.g.: function {:inline} $store.bv1(M: [$ref] bv1, p: $ref, v: bv1)
+      //        returns ([$ref] bv1) { M[p := i] }
       s << prelude.safeStore(binding) << "\n";
 
       auto byteType = getBvTypeName(8);
       auto valExpr = makeIntVarExpr(0);
 
       if (size < 8) {
-        // e.g., function {:inline} $load.bytes.bv1(M: [ref] bv8, p: ref)
+        // e.g., function {:inline} $load.bytes.bv1(M: [$ref] bv8, p: $ref)
         // returns (bv1) { $trunc.bv8.bv1(M[p]) }
         s << prelude.unsafeLoad(
                  type, Expr::fn(indexedName("$trunc", {byteType, type}),
                                 prelude.mapSelExpr(0)))
           << "\n";
-        // e.g., function {:inline} $store.bytes.bv1(M: [ref] bv8, p: ref, i:
+        // e.g., function {:inline} $store.bytes.bv1(M: [$ref] bv8, p: $ref, i:
         // bv1)
-        // returns ([ref] bv8) { M[p := $zext.bv1.bv8(i)] }
+        // returns ([$ref] bv8) { M[p := $zext.bv1.bv8(i)] }
         s << prelude.unsafeStore(
                  binding,
                  prelude.mapUpdExpr(
@@ -970,10 +970,10 @@ void IntOpGen::generateMemOps(std::stringstream &s) const {
                      Expr::fn(indexedName("$zext", {type, byteType}), valExpr)))
           << "\n";
       } else if (size == 8) {
-        // function {:inline} $load.bytes.bv8(M: [ref] bv8, p: ref) returns
+        // function {:inline} $load.bytes.bv8(M: [$ref] bv8, p: $ref) returns
         // (bv8) { M[p] }
         s << prelude.unsafeLoad(type, prelude.mapSelExpr(0)) << "\n";
-        // function {:inline} $load.bytes.bv8(M: [ref] bv8, p: ref) returns
+        // function {:inline} $load.bytes.bv8(M: [$ref] bv8, p: $ref) returns
         // (bv8) { M[p] }
         s << prelude.unsafeStore(binding, prelude.mapUpdExpr(0, valExpr))
           << "\n";
@@ -987,12 +987,12 @@ void IntOpGen::generateMemOps(std::stringstream &s) const {
           storeBody = prelude.mapUpdExpr(
               i, Expr::bvExtract(valExpr, upperIdx, lowerIdx), storeBody);
         }
-        // e.g., function {:inline} $load.bytes.bv16(M: [ref] bv8, p: ref)
-        // returns (bv16) { (M[$add.ref(p, 1)]++M[p]) }
+        // e.g., function {:inline} $load.bytes.bv16(M: [$ref] bv8, p: $ref)
+        // returns (bv16) { (M[$add.$ref(p, 1)]++M[p]) }
         s << prelude.unsafeLoad(type, loadBody) << "\n";
-        // e.g., function {:inline} $store.bytes.bv16(M: [ref] bv8, p: ref, i:
+        // e.g., function {:inline} $store.bytes.bv16(M: [$ref] bv8, p: $ref, i:
         // bv16)
-        // returns ([ref] bv8) { M[p := i[8:0]][$add.ref(p, 1) := i[16:8]] }
+        // returns ([$ref] bv8) { M[p := i[8:0]][$add.$ref(p, 1) := i[16:8]] }
         s << prelude.unsafeStore(binding, storeBody) << "\n";
       }
     }
@@ -1097,14 +1097,14 @@ void ConstDeclGen::generate(std::stringstream &s) const {
   generateIntConstant(0, s);
   generateIntConstant(1, s);
 
-  // e.g., const $1.ref: ref; axiom ($1.ref == 1);
+  // e.g., const $1.$ref: $ref; axiom ($1.$ref == 1);
   generatePtrConstant(0, s);
   generatePtrConstant(1, s);
   generatePtrConstant(1024, s);
 
   describe("Memory model constants", s);
 
-  // e.g., const $GLOBALS_BOTTOM: ref;
+  // e.g., const $GLOBALS_BOTTOM: $ref;
   s << Decl::constant(Naming::GLOBALS_BOTTOM, Naming::PTR_TYPE) << "\n";
   s << Decl::constant(Naming::EXTERNS_BOTTOM, Naming::PTR_TYPE) << "\n";
   s << Decl::constant(Naming::MALLOC_TOP, Naming::PTR_TYPE) << "\n";
@@ -1126,13 +1126,13 @@ void MemDeclGen::generateMemoryMaps(std::stringstream &s) const {
 void MemDeclGen::generateAddrBoundsAndPred(std::stringstream &s) const {
   describe("Memory address bounds", s);
 
-  // e.g., axiom ($GLOBALS_BOTTOM == $sub.ref(0, 45419));
+  // e.g., axiom ($GLOBALS_BOTTOM == $sub.$ref(0, 45419));
   s << Decl::axiom(Expr::eq(Expr::id(Naming::GLOBALS_BOTTOM),
                             prelude.rep.pointerLit(prelude.rep.globalsOffset)))
     << "\n";
   s << Decl::axiom(Expr::eq(
            Expr::id(Naming::EXTERNS_BOTTOM),
-           Expr::fn("$add.ref", Expr::id(Naming::GLOBALS_BOTTOM),
+           Expr::fn("$add.$ref", Expr::id(Naming::GLOBALS_BOTTOM),
                     prelude.rep.pointerLit(prelude.rep.externsOffset))))
     << "\n";
   unsigned long long malloc_top;
@@ -1147,8 +1147,8 @@ void MemDeclGen::generateAddrBoundsAndPred(std::stringstream &s) const {
     << "\n";
 
   // $isExternal predicate:
-  // function {:inline} $isExternal(p: ref) returns (bool)
-  // {$slt.ref.bool(p,$EXTERNS_BOTTOM)}
+  // function {:inline} $isExternal(p: $ref) returns (bool)
+  // {$slt.$ref.bool(p,$EXTERNS_BOTTOM)}
   s << Decl::function(
            Naming::EXTERNAL_ADDR, makePtrVars(1), Naming::BOOL_TYPE,
            Expr::fn(indexedName("$slt", {Naming::PTR_TYPE, Naming::BOOL_TYPE}),
@@ -1183,7 +1183,7 @@ void MemDeclGen::generate(std::stringstream &s) const {
 void PtrOpGen::generatePtrNumConvs(std::stringstream &s) const {
   describe("Pointer-number conversion", s);
 
-  // e.g., function {:inline} $p2i.ref.i8(p: ref) returns (i8) {
+  // e.g., function {:inline} $p2i.$ref.i8(p: $ref) returns (i8) {
   // $trunc.i64.i8(p) }
   for (unsigned i = 8; i <= 64; i <<= 1) {
     s << Decl::function(
@@ -1210,7 +1210,7 @@ void PtrOpGen::generatePreds(std::stringstream &s) const {
       {"$sgt", BinExpr::Gt},  {"$sge", BinExpr::Gte}, {"$slt", BinExpr::Lt},
       {"$sle", BinExpr::Lte}};
 
-  // e.g., function {:inline} $eq.ref(p1: ref, p2: ref)
+  // e.g., function {:inline} $eq.$ref(p1: $ref, p2: $ref)
   // returns (i1) { (if $eq.i64.bool(p1, p2) then 1 else 0) }
   for (auto info : predicates) {
     auto predName = info.first;
@@ -1249,7 +1249,7 @@ void PtrOpGen::generateArithOps(std::stringstream &s) const {
 
   const std::vector<std::string> operations = {"$add", "$sub", "$mul"};
 
-  // e.g., function {:inline} $add.ref(p1: ref, p2: ref) returns (ref) {
+  // e.g., function {:inline} $add.$ref(p1: $ref, p2: $ref) returns (ref) {
   // $add.i64(p1, p2) }
   for (auto op : operations) {
     s << Decl::function(indexedName(op, {Naming::PTR_TYPE}),
@@ -1269,8 +1269,8 @@ void PtrOpGen::generateMemOps(std::stringstream &s) const {
   if (SmackOptions::BitPrecise) {
     describe("Bytewise pointer storage", s);
 
-    // e.g., function {:inline} $load.bytes.ref(M: [ref] bv8, p: ref)
-    // returns (ref) { $i2p.bv64.ref($load.bytes.bv64(M, p)) }
+    // e.g., function {:inline} $load.bytes.$ref(M: [$ref] bv8, p: $ref)
+    // returns (ref) { $i2p.bv64.$ref($load.bytes.bv64(M, p)) }
     auto intType = getBvTypeName(prelude.rep.ptrSizeInBits);
     s << prelude.unsafeLoad(
              Naming::PTR_TYPE,
@@ -1279,8 +1279,8 @@ void PtrOpGen::generateMemOps(std::stringstream &s) const {
                                makeMapVarExpr(0), makePtrVarExpr(0))))
       << "\n";
 
-    // e.g., function {:inline} $store.bytes.ref(M: [ref] bv8, p: ref, p1: ref)
-    // returns ([ref] bv8) { $store.bytes.bv64(M, p, $p2i.ref.bv64(p1)) }
+    // e.g., function {:inline} $store.bytes.$ref(M: [$ref] bv8, p: $ref, p1: $ref)
+    // returns ([$ref] bv8) { $store.bytes.bv64(M, p, $p2i.$ref.bv64(p1)) }
     auto binding = makePtrVars(2).front();
     auto indexExpr = makePtrVarExpr(0);
     s << prelude.unsafeStore(
@@ -1300,7 +1300,7 @@ void PtrOpGen::generateConvOps(std::stringstream &s) const {
   describe("Pointer conversion", s);
 
   // pointer bit casts:
-  // function {:inline} $bitcast.ref.ref(i: ref) returns (ref) {i}
+  // function {:inline} $bitcast.$ref.$ref(i: $ref) returns (ref) {i}
   s << inlinedOp("$bitcast", {Naming::PTR_TYPE, Naming::PTR_TYPE},
                  makePtrVars(1), Naming::PTR_TYPE, makePtrVarExpr(0))
     << "\n";
@@ -1715,17 +1715,17 @@ void FpOpGen::generateMemOps(std::stringstream &s) const {
     for (auto bw : FP_BIT_WIDTHS) {
       std::string type = getFpTypeName(bw);
       auto binding = makeFpVars(1, bw).front();
-      // e.g., function {:inline} $load.bvhalf(M: [ref] bvhalf, p: ref)
+      // e.g., function {:inline} $load.bvhalf(M: [$ref] bvhalf, p: $ref)
       // returns (bvhalf) { M[p] }
       s << prelude.safeLoad(type) << "\n";
-      // e.g., function {:inline} $store.bvhalf(M: [ref] bvhalf, p: ref, f:
+      // e.g., function {:inline} $store.bvhalf(M: [$ref] bvhalf, p: $ref, f:
       // bvhalf)
-      // returns ([ref] bvhalf) { M[p := f] }
+      // returns ([$ref] bvhalf) { M[p := f] }
       s << prelude.safeStore(binding) << "\n";
 
       if (SmackOptions::BitPrecise) {
         std::string bvType = getBvTypeName(bw);
-        // e.g., function {:inline} $load.bytes.bvhalf(M: [ref] bv8, p: ref)
+        // e.g., function {:inline} $load.bytes.bvhalf(M: [$ref] bv8, p: $ref)
         // returns (bvhalf) { $bitcast.bv16.bvhalf($load.bytes.bv16(M, p)) }
         s << prelude.unsafeLoad(
                  type,
@@ -1733,9 +1733,9 @@ void FpOpGen::generateMemOps(std::stringstream &s) const {
                           Expr::fn(indexedName("$load", {"bytes", bvType}),
                                    makeMapVarExpr(0), makePtrVarExpr(0))))
           << "\n";
-        // e.g., function {:inline} $store.bytes.bvhalf(M: [ref] bv8, p: ref, f:
+        // e.g., function {:inline} $store.bytes.bvhalf(M: [$ref] bv8, p: $ref, f:
         // bvhalf)
-        // returns ([ref] bv8) { $store.bytes.bv16(M, p,
+        // returns ([$ref] bv8) { $store.bytes.bv16(M, p,
         // $bitcast.bvhalf.bv16(f)) }
         s << prelude.unsafeStore(
                  binding,
@@ -1746,7 +1746,7 @@ void FpOpGen::generateMemOps(std::stringstream &s) const {
           << "\n";
       } else {
         std::string intType = getIntTypeName(bw);
-        // e.g., function {:inline} $load.unsafe.bvhalf(M: [ref] i8, p: ref)
+        // e.g., function {:inline} $load.unsafe.bvhalf(M: [$ref] i8, p: $ref)
         // returns (bvhalf) { $bitcast.i16.bvhalf($load.i16(M, p)) }
         s << prelude.unsafeLoad(
                  type,
@@ -1755,9 +1755,9 @@ void FpOpGen::generateMemOps(std::stringstream &s) const {
                                    makeMapVarExpr(0), makePtrVarExpr(0))),
                  false)
           << "\n";
-        // e.g., function {:inline} $store.unsafe.bvfloat(M: [ref] i8, p: ref,
+        // e.g., function {:inline} $store.unsafe.bvfloat(M: [$ref] i8, p: $ref,
         // f: bvfloat)
-        // returns ([ref] i8) { $store.i32(M, p, $bitcast.bvfloat.i32(f)) }
+        // returns ([$ref] i8) { $store.i32(M, p, $bitcast.bvfloat.i32(f)) }
         s << prelude.unsafeStore(
                  binding,
                  Expr::fn(indexedName("$store", {intType}), makeMapVarExpr(0),
@@ -1771,23 +1771,23 @@ void FpOpGen::generateMemOps(std::stringstream &s) const {
   } else {
     std::string type = getFpTypeName(0);
     auto binding = makeFpVars(1, 0).front();
-    // function {:inline} $load.float(M: [ref] float, p: ref) returns (float) {
+    // function {:inline} $load.float(M: [$ref] float, p: $ref) returns (float) {
     // M[p] }
     s << prelude.safeLoad(type) << "\n";
-    // function {:inline} $store.float(M: [ref] float, p: ref, f: float)
-    // returns ([ref] float) { M[p := f] }
+    // function {:inline} $store.float(M: [$ref] float, p: $ref, f: float)
+    // returns ([$ref] float) { M[p := f] }
     s << prelude.safeStore(binding) << "\n";
 
     if (SmackOptions::BitPrecise) {
       std::string bvType = getBvTypeName(8);
-      // function {:inline} $load.bytes.float(M: [ref] bv8, p: ref)
+      // function {:inline} $load.bytes.float(M: [$ref] bv8, p: $ref)
       // returns (float) { $bitcast.bv8.float(M[p]) }
       s << prelude.unsafeLoad(type,
                               Expr::fn(indexedName("$bitcast", {bvType, type}),
                                        prelude.mapSelExpr(0)))
         << "\n";
-      // function {:inline} $store.bytes.float(M: [ref] bv8, p: ref, f: float)
-      // returns ([ref] bv8) { M[p := $bitcast.float.bv8(f)] }
+      // function {:inline} $store.bytes.float(M: [$ref] bv8, p: $ref, f: float)
+      // returns ([$ref] bv8) { M[p := $bitcast.float.bv8(f)] }
       s << prelude.unsafeStore(
                binding, prelude.mapUpdExpr(
                             0, Expr::fn(indexedName("$bitcast", {type, bvType}),
@@ -1795,15 +1795,15 @@ void FpOpGen::generateMemOps(std::stringstream &s) const {
         << "\n";
     } else {
       std::string intType = getIntTypeName(8);
-      // function {:inline} $load.unsafe.float(M: [ref] i8, p: ref)
+      // function {:inline} $load.unsafe.float(M: [$ref] i8, p: $ref)
       // returns (float) { $bitcast.i8.float(M[p]) }
       s << prelude.unsafeLoad(type,
                               Expr::fn(indexedName("$bitcast", {intType, type}),
                                        prelude.mapSelExpr(0)),
                               false)
         << "\n";
-      // function {:inline} $store.unsafe.float(M: [ref] i8, p: ref, f: float)
-      // returns ([ref] i8) { M[p := $bitcast.float.i8(f)] }
+      // function {:inline} $store.unsafe.float(M: [$ref] i8, p: $ref, f: float)
+      // returns ([$ref] i8) { M[p := $bitcast.float.i8(f)] }
       s << prelude.unsafeStore(
                binding,
                prelude.mapUpdExpr(

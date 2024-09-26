@@ -291,7 +291,7 @@ bool SmackRep::isExternal(const llvm::Value *v) {
 
 const Stmt *SmackRep::alloca(llvm::AllocaInst &i) {
   const Expr *size = Expr::fn(
-      "$mul.ref", pointerLit(storageSize(i.getAllocatedType())),
+      "$mul.$ref", pointerLit(storageSize(i.getAllocatedType())),
       integerToPointer(expr(i.getArraySize()), getIntSize(i.getArraySize())));
 
   // TODO this should not be a pointer type.
@@ -546,7 +546,7 @@ const Expr *SmackRep::pa(const Expr *base, long long idx, unsigned size) {
     return pa(base, pointerLit(idx), pointerLit(size));
   } else {
     return pa(base,
-              Expr::fn("$sub.ref", pointerLit(0ULL),
+              Expr::fn("$sub.$ref", pointerLit(0ULL),
                        pointerLit((unsigned long long)std::abs(idx))),
               pointerLit(size));
   }
@@ -561,11 +561,11 @@ const Expr *SmackRep::pa(const Expr *base, unsigned long long offset) {
 }
 
 const Expr *SmackRep::pa(const Expr *base, const Expr *idx, const Expr *size) {
-  return pa(base, Expr::fn("$mul.ref", idx, size));
+  return pa(base, Expr::fn("$mul.$ref", idx, size));
 }
 
 const Expr *SmackRep::pa(const Expr *base, const Expr *offset) {
-  return Expr::fn("$add.ref", base, offset);
+  return Expr::fn("$add.$ref", base, offset);
 }
 
 const Expr *SmackRep::pointerToInteger(const Expr *e, unsigned width) {
@@ -605,7 +605,7 @@ const Expr *SmackRep::pointerLit(long long v) {
   if (v >= 0)
     return pointerLit((unsigned long long)v);
   else
-    return Expr::fn("$sub.ref", pointerLit(0ULL),
+    return Expr::fn("$sub.$ref", pointerLit(0ULL),
                     pointerLit((unsigned long long)std::abs(v)));
 }
 
@@ -1313,7 +1313,7 @@ std::list<Decl *> SmackRep::globalDecl(const llvm::GlobalValue *v) {
   const unsigned globalsPadding = 1024;
   if (external) {
     decls.push_back(Decl::axiom(Expr::eq(
-        Expr::id(name), Expr::fn("$add.ref", Expr::id(Naming::GLOBALS_BOTTOM),
+        Expr::id(name), Expr::fn("$add.$ref", Expr::id(Naming::GLOBALS_BOTTOM),
                                  pointerLit(externsOffset -= size)))));
   } else {
     decls.push_back(Decl::axiom(Expr::eq(
@@ -1343,14 +1343,14 @@ Decl *SmackRep::memcpyProc(std::string type, unsigned length) {
       std::to_string(MEMORY_INTRINSIC_THRESHOLD) + "adding quantifiers.");
 
   s << "procedure " << name << "("
-    << "M.dst: [ref] " << type << ", "
-    << "M.src: [ref] " << type << ", "
-    << "dst: ref, "
-    << "src: ref, "
-    << "len: ref, "
+    << "M.dst: [$ref] " << type << ", "
+    << "M.src: [$ref] " << type << ", "
+    << "dst: $ref, "
+    << "src: $ref, "
+    << "len: $ref, "
     << "isvolatile: bool"
     << ") returns ("
-    << "M.ret: [ref] " << type << ")";
+    << "M.ret: [$ref] " << type << ")";
 
   if (no_quantifiers) {
     s << "\n"
@@ -1359,8 +1359,8 @@ Decl *SmackRep::memcpyProc(std::string type, unsigned length) {
     s << "  M.ret := M.dst;"
       << "\n";
     for (unsigned offset = 0; offset < length; ++offset)
-      s << "  M.ret[$add.ref(dst," << offset << ")] := "
-        << "M.src[$add.ref(src," << offset << ")];"
+      s << "  M.ret[$add.$ref(dst," << offset << ")] := "
+        << "M.src[$add.$ref(src," << offset << ")];"
         << "\n";
     s << "}"
       << "\n";
@@ -1369,17 +1369,17 @@ Decl *SmackRep::memcpyProc(std::string type, unsigned length) {
     s << "\n"
       << "{"
       << "\n";
-    s << "  assume (forall x: ref :: "
-      << "$sle.ref.bool(dst,x) && $slt.ref.bool(x,$add.ref(dst,len)) ==> "
-      << "M.ret[x] == M.src[$add.ref($sub.ref(src,dst),x)]"
+    s << "  assume (forall x: $ref :: "
+      << "$sle.$ref.bool(dst,x) && $slt.$ref.bool(x,$add.$ref(dst,len)) ==> "
+      << "M.ret[x] == M.src[$add.$ref($sub.$ref(src,dst),x)]"
       << ");"
       << "\n";
-    s << "  assume (forall x: ref :: "
-      << "$slt.ref.bool(x,dst) ==> M.ret[x] == M.dst[x]"
+    s << "  assume (forall x: $ref :: "
+      << "$slt.$ref.bool(x,dst) ==> M.ret[x] == M.dst[x]"
       << ");"
       << "\n";
-    s << "  assume (forall x: ref :: "
-      << "$sle.ref.bool($add.ref(dst,len),x) ==> M.ret[x] == M.dst[x]"
+    s << "  assume (forall x: $ref :: "
+      << "$sle.$ref.bool($add.$ref(dst,len),x) ==> M.ret[x] == M.dst[x]"
       << ");"
       << "\n";
     s << "}"
@@ -1388,17 +1388,17 @@ Decl *SmackRep::memcpyProc(std::string type, unsigned length) {
   } else {
     s << ";"
       << "\n";
-    s << "ensures (forall x: ref :: "
-      << "$sle.ref.bool(dst,x) && $slt.ref.bool(x,$add.ref(dst,len)) ==> "
-      << "M.ret[x] == M.src[$add.ref($sub.ref(src,dst),x)]"
+    s << "ensures (forall x: $ref :: "
+      << "$sle.$ref.bool(dst,x) && $slt.$ref.bool(x,$add.$ref(dst,len)) ==> "
+      << "M.ret[x] == M.src[$add.$ref($sub.$ref(src,dst),x)]"
       << ");"
       << "\n";
-    s << "ensures (forall x: ref :: "
-      << "$slt.ref.bool(x,dst) ==> M.ret[x] == M.dst[x]"
+    s << "ensures (forall x: $ref :: "
+      << "$slt.$ref.bool(x,dst) ==> M.ret[x] == M.dst[x]"
       << ");"
       << "\n";
-    s << "ensures (forall x: ref :: "
-      << "$sle.ref.bool($add.ref(dst,len),x) ==> M.ret[x] == M.dst[x]"
+    s << "ensures (forall x: $ref :: "
+      << "$sle.$ref.bool($add.$ref(dst,len),x) ==> M.ret[x] == M.dst[x]"
       << ");"
       << "\n";
   }
@@ -1418,13 +1418,13 @@ Decl *SmackRep::memsetProc(std::string type, unsigned length) {
       std::to_string(MEMORY_INTRINSIC_THRESHOLD) + "adding quantifiers.");
 
   s << "procedure " << name << "("
-    << "M: [ref] " << type << ", "
-    << "dst: ref, "
+    << "M: [$ref] " << type << ", "
+    << "dst: $ref, "
     << "val: " << intType(8) << ", "
-    << "len: ref, "
+    << "len: $ref, "
     << "isvolatile: bool"
     << ") returns ("
-    << "M.ret: [ref] " << type << ")";
+    << "M.ret: [$ref] " << type << ")";
 
   if (no_quantifiers) {
     s << "\n"
@@ -1433,7 +1433,7 @@ Decl *SmackRep::memsetProc(std::string type, unsigned length) {
     s << "M.ret := M;"
       << "\n";
     for (unsigned offset = 0; offset < length; ++offset)
-      s << "  M.ret[$add.ref(dst," << offset << ")] := val;"
+      s << "  M.ret[$add.$ref(dst," << offset << ")] := val;"
         << "\n";
     s << "}"
       << "\n";
@@ -1442,17 +1442,17 @@ Decl *SmackRep::memsetProc(std::string type, unsigned length) {
     s << "\n"
       << "{"
       << "\n";
-    s << "  assume (forall x: ref :: "
-      << "$sle.ref.bool(dst,x) && $slt.ref.bool(x,$add.ref(dst,len)) ==> "
+    s << "  assume (forall x: $ref :: "
+      << "$sle.$ref.bool(dst,x) && $slt.$ref.bool(x,$add.$ref(dst,len)) ==> "
       << "M.ret[x] == val"
       << ");"
       << "\n";
-    s << "  assume (forall x: ref :: "
-      << "$slt.ref.bool(x,dst) ==> M.ret[x] == M[x]"
+    s << "  assume (forall x: $ref :: "
+      << "$slt.$ref.bool(x,dst) ==> M.ret[x] == M[x]"
       << ");"
       << "\n";
-    s << "  assume (forall x: ref :: "
-      << "$sle.ref.bool($add.ref(dst,len),x) ==> M.ret[x] == M[x]"
+    s << "  assume (forall x: $ref :: "
+      << "$sle.$ref.bool($add.$ref(dst,len),x) ==> M.ret[x] == M[x]"
       << ");"
       << "\n";
     s << "}"
@@ -1461,17 +1461,17 @@ Decl *SmackRep::memsetProc(std::string type, unsigned length) {
   } else {
     s << ";"
       << "\n";
-    s << "ensures (forall x: ref :: "
-      << "$sle.ref.bool(dst,x) && $slt.ref.bool(x,$add.ref(dst,len)) ==> "
+    s << "ensures (forall x: $ref :: "
+      << "$sle.$ref.bool(dst,x) && $slt.$ref.bool(x,$add.$ref(dst,len)) ==> "
       << "M.ret[x] == val"
       << ");"
       << "\n";
-    s << "ensures (forall x: ref :: "
-      << "$slt.ref.bool(x,dst) ==> M.ret[x] == M[x]"
+    s << "ensures (forall x: $ref :: "
+      << "$slt.$ref.bool(x,dst) ==> M.ret[x] == M[x]"
       << ");"
       << "\n";
-    s << "ensures (forall x: ref :: "
-      << "$sle.ref.bool($add.ref(dst,len),x) ==> M.ret[x] == M[x]"
+    s << "ensures (forall x: $ref :: "
+      << "$sle.$ref.bool($add.$ref(dst,len),x) ==> M.ret[x] == M[x]"
       << ");"
       << "\n";
   }
